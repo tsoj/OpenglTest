@@ -121,10 +121,10 @@ int main( void )
 
 	GLuint programID = compileShaders( "shader.vert", "shader.frag" );
 
-	GLfloat vertices[] = {
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		 0.0f,  1.0f, 0.0f,
+	glm::dvec3 vertices[] = {
+		{-1.0, -1.0, 0.0},
+		{ 1.0, -1.0, 0.0},
+		{ 0.0,  1.0, 0.0},
 	};
 
 	GLuint vertexBufferID;
@@ -132,11 +132,10 @@ int main( void )
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(
+	glVertexAttribLPointer(
 		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
 		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
+		GL_DOUBLE,          // type
 		0,                  // stride
 		(void*)0            // array buffer offset
 	);
