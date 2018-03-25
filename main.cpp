@@ -1,49 +1,108 @@
 #include <iostream>
-
-#include <vector>
 #include <string>
+#include <vector>
+#include <fstream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+
+std::string readFile(std::string filePath)
+{
+  std::string ret = "";
+  std::string tmp;
+  std::ifstream file;
+  file.open(filePath);
+  if(!file.is_open())
+  {
+  	throw std::runtime_error("Failed to open file: " + filePath);
+  }
+  while (std::getline(file, tmp))
+  {
+    ret += tmp + "\n";
+  }
+  file.close();
+  return ret;
+}
+
+GLuint compileShaders(std::string vertFile, std::string fragFile)
+{
+	GLuint programID;
+	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+  GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+	std::string vertexShaderCode = readFile(vertFile);
+  const char* vertAdapter = vertexShaderCode.data();
+  glShaderSource(vertexShaderID, 1, &vertAdapter, 0);
+  glCompileShader(vertexShaderID);
+
+  std::string fragmentShaderCode = readFile(fragFile);
+  const char* fragAdapter = fragmentShaderCode.data();
+  glShaderSource(fragmentShaderID, 1, &fragAdapter, 0);
+  glCompileShader(fragmentShaderID);
+
+  programID = glCreateProgram();
+  glAttachShader(programID, vertexShaderID);
+  glAttachShader(programID, fragmentShaderID);
+  glLinkProgram(programID);
+
+  GLint success = 0;
+  glGetShaderiv(fragmentShaderID, GL_COMPILE_STATUS, &success);
+  if(success == GL_FALSE)
+  {
+    GLint maxLength = 0;
+	  glGetShaderiv(fragmentShaderID, GL_INFO_LOG_LENGTH, &maxLength);
+    std::vector<GLchar> errorLog(maxLength);
+
+    glGetShaderInfoLog(fragmentShaderID, maxLength, &maxLength, &errorLog[0]);
+    std::cout << errorLog.data() << std::endl;
+
+    glDeleteShader(fragmentShaderID);
+    throw std::runtime_error("Failed to compile fragment shader.\n");
+  }
+	glDeleteShader(fragmentShaderID);
+  glGetShaderiv(vertexShaderID, GL_COMPILE_STATUS, &success);
+  if(success == GL_FALSE)
+  {
+    GLint maxLength = 0;
+	  glGetShaderiv(vertexShaderID, GL_INFO_LOG_LENGTH, &maxLength);
+
+    std::vector<GLchar> errorLog(maxLength);
+    glGetShaderInfoLog(vertexShaderID, maxLength, &maxLength, &errorLog[0]);
+    std::cout << errorLog.data() << std::endl;
+
+    glDeleteShader(vertexShaderID);
+    throw std::runtime_error("Failed to compile vertex shader.\n");
+  }
+	glDeleteShader(vertexShaderID);
+	return programID;
+}
+
 void errorCallback_GLFW(int error, const char* description)
 {
     throw std::runtime_error("Error: " + std::string(description) + " (" + std::to_string(error) + ")\n");
 }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-static void keyCallback_GLFW(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-  {
-    glfwSetWindowShouldClose(window, GLFW_TRUE);
-  }
-}
-#pragma GCC diagnostic pop
 
-GLFWwindow* window;
-
-void init()
+int main( void )
 {
-  glfwSetErrorCallback(errorCallback_GLFW);
+	glfwSetErrorCallback(errorCallback_GLFW);
   if (!glfwInit())
   {
     throw std::runtime_error("Failed to initialize GLFW.\n");
   }
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 
-  window = glfwCreateWindow(800, 600, "OpenglTest", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "OpenglTest", NULL, NULL);
   if (!window)
   {
     glfwTerminate();
     throw std::runtime_error("Failed to initialize Window or context.\n");
   }
+	glfwMakeContextCurrent(window);
 
-  glfwMakeContextCurrent(window);
-
-  GLenum err = glewInit();
+	GLenum err = glewInit();
   if (GLEW_OK != err)
   {
     throw std::runtime_error("Failed to initialize GLEW: "+ std::string((char*)glewGetErrorString(err)) + "\n");
@@ -52,36 +111,54 @@ void init()
   {
     throw std::runtime_error("Failed to find required extensions.\n");
   }
+	glfwSwapInterval(1);
 
-  glfwSetKeyCallback(window, keyCallback_GLFW);
+	glClearColor(0.1f, 0.2f, 0.5f, 1.0f);
 
-  glfwSwapInterval(1);
-}
-void cleanup()
-{
-  glfwDestroyWindow(window);
-  glfwTerminate();
-}
-void mainLoop()
-{
-  while (!glfwWindowShouldClose(window))
-  {
-    glClearColor(0.1, 0.4, 0.7, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-  }
-}
+	GLuint vertexArrayID;
+	glGenVertexArrays(1, &vertexArrayID);
+	glBindVertexArray(vertexArrayID);
 
-int main()
-{
-  std::cout << "Hello." << std::endl;
+	GLuint programID = compileShaders( "shader.vert", "shader.frag" );
 
-  init();
-  mainLoop();
-  cleanup();
+	GLfloat vertices[] = {
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		 0.0f,  1.0f, 0.0f,
+	};
 
-  std::cout << "Goodbye." << std::endl;
+	GLuint vertexBufferID;
+	glGenBuffers(1, &vertexBufferID);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(
+		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		3,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
 
-  return 0;
+	while(!glfwWindowShouldClose(window))
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(programID);
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+
+	}
+
+	glDeleteBuffers(1, &vertexBufferID);
+	glDeleteVertexArrays(1, &vertexArrayID);
+	glDeleteProgram(programID);
+
+	glfwTerminate();
+
+	return 0;
 }
