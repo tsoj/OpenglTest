@@ -66,6 +66,9 @@ void mainLoop()
 {
   while (!glfwWindowShouldClose(window))
   {
+    glClearColor(0.1, 0.4, 0.7, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glfwSwapBuffers(window);
     glfwPollEvents();
   }
 }
