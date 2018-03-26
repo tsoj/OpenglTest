@@ -1,16 +1,16 @@
 #version 450
 
-layout(location = 0) in dvec3 inPosition;
+in layout(location = 0) vec3 modelPosition;
 
-layout(location = 0) out vec4 outColor;
+out layout(location = 0) vec4 outColor;
 
-layout(location = 0) uniform mat4 modelToView;
-layout(location = 1) uniform mat4 worldToProjection;
+uniform layout(location = 0) mat4 modelToView;
+uniform layout(location = 1) mat4 worldToProjection;
 
 void main()
 {
-  vec4 v = vec4(inPosition, 1.0);
-  vec4 newPosition = worldToProjection*modelToView*v;
-  gl_Position = newPosition;
+  vec4 worldPosition = modelToView * vec4(modelPosition, 1.0);
+  vec4 projectedWorldPosition = worldToProjection * worldPosition;
+  gl_Position = projectedWorldPosition;
   outColor = vec4(0.9, 0.1, 0.0, 1.0);
 }

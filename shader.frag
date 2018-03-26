@@ -1,6 +1,6 @@
 #version 450
 
-layout(location = 0) in vec4 inColor;
+in layout(location = 0) vec4 inColor;
 
 out vec4 outColor;
 

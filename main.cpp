@@ -1,31 +1,15 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <fstream>
+#include <map>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
-std::string readFile(std::string filePath)
-{
-  std::string ret = "";
-  std::string tmp;
-  std::ifstream file;
-  file.open(filePath);
-  if(!file.is_open())
-  {
-  	throw std::runtime_error("Failed to open file: " + filePath);
-  }
-  while (std::getline(file, tmp))
-  {
-    ret += tmp + "\n";
-  }
-  file.close();
-  return ret;
-}
+#include "readWrite.hpp"
+#include "loadObj.hpp"
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -86,6 +70,7 @@ void errorCallback_GLFW(int error, const char* description)
 
 int main( void )
 {
+
 	glfwSetErrorCallback(errorCallback_GLFW);
   if (!glfwInit())
   {
@@ -126,9 +111,11 @@ int main( void )
 	glGenVertexArrays(1, &vertexArrayID);
 	glBindVertexArray(vertexArrayID);
 
-	GLuint programID = compileShaders( "shader.vert", "shader.frag" );
+	GLuint programID = compileShaders("shader.vert", "shader.frag");
 
-	glm::dvec3 vertices[] = {
+	Model3D model = loadObj("spaceboat.obj");
+
+	glm::vec3 vertices[] = {
 		{-1.0, -1.0, 0.0},
 		{ 1.0, -1.0, 0.0},
 		{ 0.0,  1.0, 0.0},
@@ -137,18 +124,19 @@ int main( void )
 	GLuint vertexBufferID;
 	glGenBuffers(1, &vertexBufferID);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * model.objects[2].vertices.size() , model.objects[2].vertices.data(), GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribLPointer(
-		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-		3,                  // size
-		GL_DOUBLE,          // type
-		0,                  // stride
-		(void*)0            // array buffer offset
+	glVertexAttribPointer(
+		0,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
+		3,     																		// size
+		GL_FLOAT,          												// type
+		GL_FALSE,																	// normalized
+		sizeof(glm::vec3)*2 + sizeof(glm::vec2),	// stride
+		(void*)0            											// array buffer offset
 	);
 
-  glm::vec3 cameraPosition = {0.0, 0.0, -3.0};
-  glm::vec3 cameraViewDirection = {0.0, -0.2, -1.0};
+  glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
+  glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
   glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
 	while(!glfwWindowShouldClose(window))
@@ -157,7 +145,7 @@ int main( void )
 
 		glUseProgram(programID);
 
-    glm::mat4 modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -5.0});
+    glm::mat4 modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -10.0});
     modelToWorld = glm::rotate(modelToWorld, glm::radians(30.0f), glm::vec3(0.0, 1.0, 0.0));
 
     glm::mat4 modelToView = glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp) * modelToWorld;
@@ -165,12 +153,12 @@ int main( void )
 
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
-    glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 10.0f);
+    glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f);
 
     glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToView[0][0]));
     glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, model.objects[2].vertices.size());
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
