@@ -147,19 +147,27 @@ int main( void )
 		(void*)0            // array buffer offset
 	);
 
+  glm::vec3 cameraPosition = {0.0, 0.0, -3.0};
+  glm::vec3 cameraViewDirection = {0.0, -0.2, -1.0};
+  glm::vec3 cameraUp = {0.0, 1.0, 0.0};
+
 	while(!glfwWindowShouldClose(window))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(programID);
 
-    glm::mat4 modelToWorld = glm::rotate(glm::mat4(), glm::radians(30.0f), glm::vec3(0.0, 1.0, 0.0));
-    modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -5.0}) * modelToWorld;
+    glm::mat4 modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -5.0});
+    modelToWorld = glm::rotate(modelToWorld, glm::radians(30.0f), glm::vec3(0.0, 1.0, 0.0));
+
+    glm::mat4 modelToView = glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp) * modelToWorld;
+
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 10.0f);
 
-    glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToWorld[0][0]));
+    glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToView[0][0]));
     glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
