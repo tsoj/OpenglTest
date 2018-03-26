@@ -107,6 +107,15 @@ struct Entity
 		}
 	}
 
+	~Entity()
+	{
+		for(size_t i = 0; i< model.objects.size(); i++)
+		{
+			glDeleteBuffers(1, &vertexBufferIDs[i]);
+			glDeleteVertexArrays(1, &vertexArrayObjectIDs[i]);
+		}
+	}
+
 	void render()
 	{
 		for(size_t i = 0; i< model.objects.size(); i++)
@@ -171,50 +180,14 @@ int main( void )
   glEnable(GL_DEPTH_TEST);
 
 	glClearColor(0.1f, 0.2f, 0.5f, 1.0f);
-
-	GLuint vertexArrayID;
-	glGenVertexArrays(1, &vertexArrayID);
-	glBindVertexArray(vertexArrayID);
-
 	programID = compileShaders("shader.vert", "shader.frag");
 
 	Model3D model = loadObj("spaceboat.obj");
 
-	/*GLuint vertexBufferID;
-	glGenBuffers(1, &vertexBufferID);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * model.objects[2].vertices.size() , model.objects[2].vertices.data(), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(
-		0,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
-		3,     																		// size
-		GL_FLOAT,          												// type
-		GL_FALSE,																	// normalized
-		sizeof(glm::vec3)*2 + sizeof(glm::vec2),	// stride
-		(void*)0            											// array buffer offset
-	);*/
 	Entity e = Entity(model);
 
 	while(!glfwWindowShouldClose(window))
 	{
-		/*'glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glUseProgram(programID);
-
-    glm::mat4 modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -10.0});
-    modelToWorld = glm::rotate(modelToWorld, glm::radians(30.0f), glm::vec3(0.0, 1.0, 0.0));
-
-    glm::mat4 modelToView = glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp) * modelToWorld;
-
-
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-    glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f);
-
-    glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToView[0][0]));
-    glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
-
-		glDrawArrays(GL_TRIANGLES, 0, model.objects[2].vertices.size());*/
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		e.render();
 
@@ -222,10 +195,7 @@ int main( void )
 		glfwPollEvents();
 
 	}
-
-	/*glDeleteBuffers(1, &vertexBufferID);
-	glDeleteVertexArrays(1, &vertexArrayID);
-	glDeleteProgram(programID);*/
+	glDeleteProgram(programID);
 
 	glfwTerminate();
 
