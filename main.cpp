@@ -11,6 +11,12 @@
 #include "readWrite.hpp"
 #include "loadObj.hpp"
 
+GLuint programID;
+GLFWwindow* window;
+glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
+glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
+glm::vec3 cameraUp = {0.0, 1.0, 0.0};
+
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
 	GLuint programID;
@@ -68,6 +74,65 @@ void errorCallback_GLFW(int error, const char* description)
     throw std::runtime_error("Error: " + std::string(description) + " (" + std::to_string(error) + ")\n");
 }
 
+struct Entity
+{
+	Model3D model;
+	std::vector<GLuint> vertexBufferIDs;
+	std::vector<GLuint> vertexArrayObjectIDs;
+	//std::vector<GLuint> programIDs;
+
+	Entity(Model3D model) : model(model)
+	{
+		vertexBufferIDs = std::vector<GLuint>();
+		vertexArrayObjectIDs = std::vector<GLuint>();
+		for(auto& object : model.objects)
+		{
+			vertexArrayObjectIDs.emplace_back();
+			glGenVertexArrays(1, &vertexArrayObjectIDs.back());
+			glBindVertexArray(vertexArrayObjectIDs.back());
+
+			vertexBufferIDs.emplace_back();
+			glGenBuffers(1, &vertexBufferIDs.back());
+			glBindBuffer(GL_ARRAY_BUFFER, vertexBufferIDs.back());
+			glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * object.vertices.size() , object.vertices.data(), GL_STATIC_DRAW);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(
+				0,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
+				3,     																		// size
+				GL_FLOAT,          												// type
+				GL_FALSE,																	// normalized
+				sizeof(Vertex),														// stride
+				(void*)0            											// array buffer offset
+			);
+		}
+	}
+
+	void render()
+	{
+		for(size_t i = 0; i< model.objects.size(); i++)
+		{
+
+			glBindVertexArray(vertexArrayObjectIDs[i]);
+
+			glUseProgram(programID);
+
+			glm::mat4 modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -20.0});
+			modelToWorld = glm::rotate(modelToWorld, glm::radians(120.0f), glm::vec3(0.0, 1.0, 1.0));
+
+			glm::mat4 modelToView = glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp) * modelToWorld;
+
+			int width, height;
+			glfwGetFramebufferSize(window, &width, &height);
+			glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f);
+
+			glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToView[0][0]));
+			glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
+
+			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
+		}
+	}
+};
+
 int main( void )
 {
 
@@ -80,7 +145,7 @@ int main( void )
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 
-	GLFWwindow* window = glfwCreateWindow(800, 600, "OpenglTest", NULL, NULL);
+	window = glfwCreateWindow(800, 600, "OpenglTest", NULL, NULL);
   if (!window)
   {
     glfwTerminate();
@@ -111,17 +176,11 @@ int main( void )
 	glGenVertexArrays(1, &vertexArrayID);
 	glBindVertexArray(vertexArrayID);
 
-	GLuint programID = compileShaders("shader.vert", "shader.frag");
+	programID = compileShaders("shader.vert", "shader.frag");
 
 	Model3D model = loadObj("spaceboat.obj");
 
-	glm::vec3 vertices[] = {
-		{-1.0, -1.0, 0.0},
-		{ 1.0, -1.0, 0.0},
-		{ 0.0,  1.0, 0.0},
-	};
-
-	GLuint vertexBufferID;
+	/*GLuint vertexBufferID;
 	glGenBuffers(1, &vertexBufferID);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * model.objects[2].vertices.size() , model.objects[2].vertices.data(), GL_STATIC_DRAW);
@@ -133,15 +192,12 @@ int main( void )
 		GL_FALSE,																	// normalized
 		sizeof(glm::vec3)*2 + sizeof(glm::vec2),	// stride
 		(void*)0            											// array buffer offset
-	);
-
-  glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
-  glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
-  glm::vec3 cameraUp = {0.0, 1.0, 0.0};
+	);*/
+	Entity e = Entity(model);
 
 	while(!glfwWindowShouldClose(window))
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		/*'glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(programID);
 
@@ -158,16 +214,18 @@ int main( void )
     glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToView[0][0]));
     glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
 
-		glDrawArrays(GL_TRIANGLES, 0, model.objects[2].vertices.size());
+		glDrawArrays(GL_TRIANGLES, 0, model.objects[2].vertices.size());*/
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		e.render();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
 	}
 
-	glDeleteBuffers(1, &vertexBufferID);
+	/*glDeleteBuffers(1, &vertexBufferID);
 	glDeleteVertexArrays(1, &vertexArrayID);
-	glDeleteProgram(programID);
+	glDeleteProgram(programID);*/
 
 	glfwTerminate();
 

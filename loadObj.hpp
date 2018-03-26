@@ -78,7 +78,6 @@ Material loadMtl(std::string filePath)
       ret.shininess = std::atof(bufferString.c_str());
     }
   }
-
   return ret;
 }
 
@@ -112,10 +111,6 @@ Model3D loadObj(std::string filePath)
 		  bufferStringStream >> bufferString;
       materialIndices[bufferString] = materials.size();
       materials.push_back(loadMtl(bufferString));
-
-      //std::cout << "m_1" << std::endl;
-      //ret.objects.back().material = materials[materialIndices[bufferString]];
-      //std::cout << "m_2" << std::endl;
 		}
 		else if (bufferString == "usemtl")
 		{
