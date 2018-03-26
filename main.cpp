@@ -13,9 +13,12 @@
 
 GLuint programID;
 GLFWwindow* window;
+
 glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
 glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
+
+glm::vec3 lightPosition = {0.0, 20.0, 0.0};
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -79,9 +82,11 @@ struct Entity
 	Model3D model;
 	std::vector<GLuint> vertexBufferIDs;
 	std::vector<GLuint> vertexArrayObjectIDs;
+
+	glm::vec3 position;
 	//std::vector<GLuint> programIDs;
 
-	Entity(Model3D model) : model(model)
+	Entity(Model3D model, glm::vec3 position) : model(model), position(position)
 	{
 		vertexBufferIDs = std::vector<GLuint>();
 		vertexArrayObjectIDs = std::vector<GLuint>();
@@ -104,6 +109,15 @@ struct Entity
 				sizeof(Vertex),														// stride
 				(void*)0            											// array buffer offset
 			);
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(
+				1,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
+				3,     																		// size
+				GL_FLOAT,          												// type
+				GL_FALSE,																	// normalized
+				sizeof(Vertex),														// stride
+				(void*)(sizeof(glm::vec3))					// array buffer offset
+			);
 		}
 	}
 
@@ -125,17 +139,20 @@ struct Entity
 
 			glUseProgram(programID);
 
-			glm::mat4 modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -20.0});
-			modelToWorld = glm::rotate(modelToWorld, glm::radians(120.0f), glm::vec3(0.0, 1.0, 1.0));
+			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 0.0));
+			glm::mat4 modelTranslation = glm::translate(glm::mat4(), position);
 
-			glm::mat4 modelToView = glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp) * modelToWorld;
+			glm::mat4 modelToWorld = modelTranslation * modelRotation;
 
 			int width, height;
 			glfwGetFramebufferSize(window, &width, &height);
-			glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f);
+			glm::mat4 worldToProjection =
+				glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f) *
+				glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp);
 
-			glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToView[0][0]));
+			glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToWorld[0][0]));
 			glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
+			glUniformMatrix4fv(2, 1, GL_FALSE, &(modelRotation[0][0]));
 
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
@@ -178,18 +195,22 @@ int main( void )
   glViewport(0, 0, width, height);
 
   glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	//glFrontFace(GL_CW);
 
-	glClearColor(0.1f, 0.2f, 0.5f, 1.0f);
+	glClearColor(0.02f, 0.04f, 0.1f, 1.0f);
+
 	programID = compileShaders("shader.vert", "shader.frag");
 
-	Model3D model = loadObj("spaceboat.obj");
+	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, 1.0, -20.0});
 
-	Entity e = Entity(model);
+	Entity p = Entity(loadObj("Plane.obj"), {0.0, -3.0, -20.0});
 
 	while(!glfwWindowShouldClose(window))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		e.render();
+		p.render();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
