@@ -27,11 +27,9 @@ struct Model3D
   std::vector<Object3D> objects = std::vector<Object3D>();
 };
 
-Material loadMtl(std::string filePath)
+void loadMtl(std::string filePath, std::vector<Material>& materials, std::map<std::string, size_t>& materialIndices)
 {
   std::string mtlData = readFile(filePath);
-
-  Material ret = {};
 
   std::stringstream modelDataStream(mtlData);
 	std::string bufferString;
@@ -40,45 +38,50 @@ Material loadMtl(std::string filePath)
 		std::stringstream bufferStringStream(bufferString);
 		bufferStringStream >> bufferString;
 
-    if(bufferString == "Ka")
+    if(bufferString == "newmtl")
     {
       bufferStringStream >> bufferString;
-      ret.ambientColor.r = std::atof(bufferString.c_str());
+      materialIndices[bufferString] = materials.size();
+      materials.emplace_back();
+    }
+    else if(bufferString == "Ka")
+    {
       bufferStringStream >> bufferString;
-      ret.ambientColor.g = std::atof(bufferString.c_str());
+      materials.back().ambientColor.r = std::atof(bufferString.c_str());
       bufferStringStream >> bufferString;
-      ret.ambientColor.b = std::atof(bufferString.c_str());
+      materials.back().ambientColor.g = std::atof(bufferString.c_str());
+      bufferStringStream >> bufferString;
+      materials.back().ambientColor.b = std::atof(bufferString.c_str());
     }
     else if(bufferString == "Kd")
     {
       bufferStringStream >> bufferString;
-      ret.diffuseColor.r = std::atof(bufferString.c_str());
+      materials.back().diffuseColor.r = std::atof(bufferString.c_str());
       bufferStringStream >> bufferString;
-      ret.diffuseColor.g = std::atof(bufferString.c_str());
+      materials.back().diffuseColor.g = std::atof(bufferString.c_str());
       bufferStringStream >> bufferString;
-      ret.diffuseColor.b = std::atof(bufferString.c_str());
+      materials.back().diffuseColor.b = std::atof(bufferString.c_str());
     }
     else if(bufferString == "Ks")
     {
       bufferStringStream >> bufferString;
-      ret.specularColor.r = std::atof(bufferString.c_str());
+      materials.back().specularColor.r = std::atof(bufferString.c_str());
       bufferStringStream >> bufferString;
-      ret.specularColor.g = std::atof(bufferString.c_str());
+      materials.back().specularColor.g = std::atof(bufferString.c_str());
       bufferStringStream >> bufferString;
-      ret.specularColor.b = std::atof(bufferString.c_str());
+      materials.back().specularColor.b = std::atof(bufferString.c_str());
     }
     else if(bufferString == "d" || bufferString == "Tr")
     {
       bufferStringStream >> bufferString;
-      ret.transparency = std::atof(bufferString.c_str());
+      materials.back().transparency = std::atof(bufferString.c_str());
     }
     else if(bufferString == "Ns")
     {
       bufferStringStream >> bufferString;
-      ret.shininess = std::atof(bufferString.c_str());
+      materials.back().shininess = std::atof(bufferString.c_str());
     }
   }
-  return ret;
 }
 
 Model3D loadObj(std::string filePath)
@@ -109,8 +112,7 @@ Model3D loadObj(std::string filePath)
 		else if (bufferString == "mtllib")
 		{
 		  bufferStringStream >> bufferString;
-      materialIndices[bufferString] = materials.size();
-      materials.push_back(loadMtl(bufferString));
+      loadMtl(bufferString, materials, materialIndices);
 		}
 		else if (bufferString == "usemtl")
 		{

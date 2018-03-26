@@ -1,23 +1,19 @@
 #version 450
 
-in layout(location = 0) vec3 modelPosition;
+in layout(location = 0) vec4 modelPosition;
 in layout(location = 1) vec3 modelNormal;
 
 out layout(location = 0) vec3 worldPosition;
 out layout(location = 1) vec3 worldNormal;
 
-uniform layout(location = 0) mat4 modelToWorld;
-uniform layout(location = 1) mat4 worldToProjection;
-uniform layout(location = 2) mat4 modelRotation;
+uniform mat4 modelToWorld;
+uniform mat4 worldToProjection;
 
 void main()
 {
-  vec4 v;
-  v = modelToWorld * vec4(modelPosition, 1.0);
-  worldPosition = vec3(v.x, v.y, v.z);
+  worldPosition = vec3(modelToWorld * modelPosition);
 
-  gl_Position = worldToProjection * v;
+  gl_Position = worldToProjection * vec4(worldPosition, 1.0);
 
-  v = modelRotation * vec4(modelNormal, 1.0);
-  worldNormal = normalize(vec3(v.x, v.y, v.z));
+  worldNormal = vec3((modelToWorld * vec4(modelNormal, 0.0)));
 }

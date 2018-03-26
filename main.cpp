@@ -18,7 +18,7 @@ glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
 glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
-glm::vec3 lightPosition = {0.0, 20.0, 0.0};
+glm::vec3 lightPosition = {0.0, 20.0, -100.0};
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -84,7 +84,6 @@ struct Entity
 	std::vector<GLuint> vertexArrayObjectIDs;
 
 	glm::vec3 position;
-	//std::vector<GLuint> programIDs;
 
 	Entity(Model3D model, glm::vec3 position) : model(model), position(position)
 	{
@@ -150,9 +149,43 @@ struct Entity
 				glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f) *
 				glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp);
 
-			glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToWorld[0][0]));
-			glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
-			glUniformMatrix4fv(2, 1, GL_FALSE, &(modelRotation[0][0]));
+
+			glUniformMatrix4fv(
+				glGetUniformLocation(programID, "modelToWorld"),
+				1, GL_FALSE, &(modelToWorld[0][0])
+			);
+			glUniformMatrix4fv(
+				glGetUniformLocation(programID, "worldToProjection"),
+				1, GL_FALSE, &(worldToProjection[0][0])
+			);
+			glUniform3fv(
+				glGetUniformLocation(programID, "cameraPosition"),
+				1, &cameraPosition[0]
+			);
+			glUniform3fv(
+				glGetUniformLocation(programID, "lightPosition"),
+				1, &lightPosition[0]
+			);
+			glUniform3fv(
+				glGetUniformLocation(programID, "ambientColor"),
+				1, &model.objects[i].material.ambientColor[0]
+			);
+			glUniform3fv(
+				glGetUniformLocation(programID, "diffuseColor"),
+				1, &model.objects[i].material.diffuseColor[0]
+			);
+			glUniform3fv(
+				glGetUniformLocation(programID, "specularColor"),
+				1, &model.objects[i].material.specularColor[0]
+			);
+			glUniform1f(
+				glGetUniformLocation(programID, "transparency"),
+				model.objects[i].material.transparency
+			);
+			glUniform1f(
+				glGetUniformLocation(programID, "shininess"),
+				model.objects[i].material.shininess
+			);
 
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
@@ -202,7 +235,7 @@ int main( void )
 
 	programID = compileShaders("shader.vert", "shader.frag");
 
-	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, 1.0, -20.0});
+	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, -1.0, -20.0});
 
 	Entity p = Entity(loadObj("Plane.obj"), {0.0, -3.0, -20.0});
 
