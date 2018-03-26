@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 
 std::string readFile(std::string filePath)
@@ -113,6 +114,12 @@ int main( void )
   }
 	glfwSwapInterval(1);
 
+  int width, height;
+  glfwGetFramebufferSize(window, &width, &height);
+  glViewport(0, 0, width, height);
+
+  glEnable(GL_DEPTH_TEST);
+
 	glClearColor(0.1f, 0.2f, 0.5f, 1.0f);
 
 	GLuint vertexArrayID;
@@ -145,6 +152,15 @@ int main( void )
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(programID);
+
+    glm::mat4 modelToWorld = glm::rotate(glm::mat4(), glm::radians(30.0f), glm::vec3(0.0, 1.0, 0.0));
+    modelToWorld = glm::translate(glm::mat4(), {0.0, 0.0, -5.0}) * modelToWorld;
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glm::mat4 worldToProjection = glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 10.0f);
+
+    glUniformMatrix4fv(0, 1, GL_FALSE, &(modelToWorld[0][0]));
+    glUniformMatrix4fv(1, 1, GL_FALSE, &(worldToProjection[0][0]));
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
