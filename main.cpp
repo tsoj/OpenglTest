@@ -12,6 +12,16 @@
 #include "loadObj.hpp"
 #include "lodepng.hpp"
 
+struct Texture
+{
+	Texture(uint32_t width, uint32_t height, std::vector<unsigned char> image) :
+		width(width), height(height), image(image)
+	{}
+	uint32_t width, height;
+	std::vector<unsigned char> image;
+};
+Texture defaultTexture = Texture(1, 1, {255, 255, 255, 255});
+
 GLuint programID;
 GLFWwindow* window;
 
@@ -19,7 +29,7 @@ glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
 glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
-glm::vec3 lightPosition = {-20.0, 40.0, -40.0};
+glm::vec3 lightPosition = {0.0, 20.0, -50.0};
 
 GLuint textureID;
 
@@ -78,7 +88,7 @@ GLuint compileShaders(std::string vertFile, std::string fragFile)
 GLuint loadTexture(const char* filePath)
 {
 	std::vector<unsigned char> image;
-  unsigned width, height;
+  unsigned int width, height;
   auto error = lodepng::decode(image, width, height, filePath);
   if(error)
 	{
@@ -88,7 +98,7 @@ GLuint loadTexture(const char* filePath)
 	GLuint textureID;glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, defaultTexture.width, defaultTexture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, defaultTexture.image.data());
 	//enable mipmapping
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -144,11 +154,20 @@ struct Entity
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(
 				2,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
+				2,     																		// size
+				GL_FLOAT,          												// type
+				GL_FALSE,																	// normalized
+				sizeof(Vertex),														// stride
+				(void*)offsetof(Vertex, textureCoordinate)// array buffer offset
+			);
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(
+				2,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
 				3,     																		// size
 				GL_FLOAT,          												// type
 				GL_FALSE,																	// normalized
 				sizeof(Vertex),														// stride
-				(void*)offsetof(Vertex, textureCoordinate)						// array buffer offset
+				(void*)offsetof(Vertex, tangent)					// array buffer offset
 			);
 		}
 	}

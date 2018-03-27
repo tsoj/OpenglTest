@@ -30,7 +30,7 @@ void main()
 
   float lightDistance = distance(lightPosition, worldPosition);
 
-  vec3 ambientLight = ambientColor * vec3(0.2, 0.2, 0.2);
+  vec3 ambientLight = ambientColor * vec3(0.0, 0.0, 0.0);
   vec3 diffuseLight = diffuseColor * clamp(dot(toLight, normal), 0.0, 1.0);
 
   vec3 halfDir = normalize(toLight + toCamera);
@@ -39,5 +39,5 @@ void main()
 
   vec3 finalLight = clamp(ambientLight + (diffuseLight + specularLight) * lightColor * clamp(lightPower/pow(lightDistance, 2.0), 0.0, 1.0) , 0.0, 1.0);
 
-  outColor = textureColor * vec4(finalLight,  1.0);
+  outColor = textureColor * vec4(finalLight,  transparency);
 }

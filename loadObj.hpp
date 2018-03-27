@@ -194,6 +194,29 @@ Model3D loadObj(std::string filePath)
         }
         ret.objects.back().vertices.push_back(tempVertex);
       }
+      auto size = ret.objects.back().vertices.size();
+      glm::vec3 v0 = ret.objects.back().vertices[size-1].position;
+      glm::vec3 v1 = ret.objects.back().vertices[size-2].position;
+      glm::vec3 v2 = ret.objects.back().vertices[size-3].position;
+
+      glm::vec3 dv0 = v1-v0;
+      glm::vec3 dv1 = v2-v0;
+
+      glm::vec2 t0 = ret.objects.back().vertices[size-1].textureCoordinate;
+      glm::vec2 t1 = ret.objects.back().vertices[size-2].textureCoordinate;
+      glm::vec2 t2 = ret.objects.back().vertices[size-3].textureCoordinate;
+
+      glm::vec2 dt0 = t1-t0;
+      glm::vec2 dt1 = t2-t0;
+
+      glm::vec3 tmpTangent = (dv0*dt1.y - dv1*dt0.y) / (dt0.x*dt1.y - dt0.y*dt1.x);
+
+      for(size_t i = 1; i<=3; i++)
+      {
+        glm::vec3 biTangent = glm::cross(tmpTangent, ret.objects.back().vertices[size-i].normal);
+        glm::vec3 realTangent = glm::cross(ret.objects.back().vertices[size-i].normal, biTangent);
+        ret.objects.back().vertices[size-i].tangent = realTangent;
+      }
     }
 	}
   return ret;
