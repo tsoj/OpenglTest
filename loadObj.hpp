@@ -171,7 +171,7 @@ Model3D loadObj(std::string filePath)
             }
             else if (iterator == 1)
             {
-              tempVertex.textureCoordinate = glm::vec2(0.0, 1.0);
+              tempVertex.textureCoordinate = glm::vec2(-1.0, -1.0);
             }
             else if (iterator == 2)
             {
@@ -202,6 +202,13 @@ Model3D loadObj(std::string filePath)
 
       glm::vec3 dv0 = v1-v0;
       glm::vec3 dv1 = v2-v0;
+
+      if(ret.objects.back().vertices[size-1].textureCoordinate == glm::vec2(-1.0, -1.0))
+      {
+        ret.objects.back().vertices[size-1].textureCoordinate = glm::vec2(1.0, 1.0);
+        ret.objects.back().vertices[size-2].textureCoordinate = glm::vec2(0.0, 1.0);
+        ret.objects.back().vertices[size-3].textureCoordinate = glm::vec2(0.0, 0.0);
+      }
 
       glm::vec2 t0 = ret.objects.back().vertices[size-1].textureCoordinate;
       glm::vec2 t1 = ret.objects.back().vertices[size-2].textureCoordinate;

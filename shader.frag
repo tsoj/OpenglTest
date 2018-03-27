@@ -37,7 +37,7 @@ void main()
   float specAngle = clamp(dot(halfDir, normal), 0.0, 1.0);
   vec3 specularLight = specularColor * pow(specAngle, 20.0);
 
-  vec3 finalLight = clamp(ambientLight + (diffuseLight + specularLight) * lightColor /* clamp(lightPower/pow(lightDistance, 2.0), 0.0, 1.0)*/ , 0.0, 1.0);
+  vec3 finalLight = clamp(ambientLight + (diffuseLight + specularLight) * lightColor * clamp(lightPower/pow(lightDistance, 2.0), 0.0, 1.0) , 0.0, 1.0);
 
-  outColor = vec4(1.0, 1.0, 1.0, 1.0) * vec4(finalLight,  transparency);
+  outColor = textureColor * vec4(finalLight,  transparency);
 }
