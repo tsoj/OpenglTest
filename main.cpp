@@ -10,6 +10,7 @@
 
 #include "readWrite.hpp"
 #include "loadObj.hpp"
+#include "lodepng.hpp"
 
 GLuint programID;
 GLFWwindow* window;
@@ -18,7 +19,9 @@ glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
 glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
-glm::vec3 lightPosition = {0.0, 20.0, -100.0};
+glm::vec3 lightPosition = {-20.0, 40.0, -40.0};
+
+GLuint textureID;
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -72,6 +75,27 @@ GLuint compileShaders(std::string vertFile, std::string fragFile)
 	return programID;
 }
 
+GLuint loadTexture(const char* filePath)
+{
+	std::vector<unsigned char> image;
+  unsigned width, height;
+  auto error = lodepng::decode(image, width, height, filePath);
+  if(error)
+	{
+		throw std::runtime_error("decoder error " + std::to_string(error) + ": " + lodepng_error_text(error));
+	}
+
+	GLuint textureID;glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data());
+	//enable mipmapping
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.3f);
+	return textureID;
+}
+
 void errorCallback_GLFW(int error, const char* description)
 {
     throw std::runtime_error("Error: " + std::string(description) + " (" + std::to_string(error) + ")\n");
@@ -115,7 +139,16 @@ struct Entity
 				GL_FLOAT,          												// type
 				GL_FALSE,																	// normalized
 				sizeof(Vertex),														// stride
-				(void*)(sizeof(glm::vec3))					// array buffer offset
+				(void*)offsetof(Vertex, normal)						// array buffer offset
+			);
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(
+				2,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
+				3,     																		// size
+				GL_FLOAT,          												// type
+				GL_FALSE,																	// normalized
+				sizeof(Vertex),														// stride
+				(void*)offsetof(Vertex, textureCoordinate)						// array buffer offset
 			);
 		}
 	}
@@ -186,6 +219,9 @@ struct Entity
 				glGetUniformLocation(programID, "shininess"),
 				model.objects[i].material.shininess
 			);
+			glActiveTexture(GL_TEXTURE0);
+			glUniform1i(glGetUniformLocation(programID, "texture"), 0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
 
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
@@ -234,6 +270,8 @@ int main( void )
 	glClearColor(0.02f, 0.04f, 0.1f, 1.0f);
 
 	programID = compileShaders("shader.vert", "shader.frag");
+
+	textureID = loadTexture("whitePixel.png");
 
 	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, -1.0, -20.0});
 

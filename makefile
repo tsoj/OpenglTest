@@ -3,7 +3,7 @@ CFLAGS = -std=c++14 -O3 -Wall -Wextra
 LDFLAGS = -std=c++14 -O3 -Wall -Wextra -lGLEW -lGLU -lGL -lglfw3 -lX11 -lXrandr -lXxf86vm -lXinerama -lXcursor -pthread -ldl
 NAME = OpenglTest
 BIN_FILE_PATH = ./bin/
-CPP = main.cpp
+CPP = main.cpp lodepng.cpp
 
 OBJ = $(CPP:%.cpp=%.o)
 OBJ_DEST = $(CPP:%.cpp=$(BIN_FILE_PATH)%.o)

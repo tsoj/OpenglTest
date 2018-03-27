@@ -2,6 +2,7 @@
 
 in layout(location = 0) vec3 worldPosition;
 in layout(location = 1) vec3 worldNormal;
+in layout(location = 2) vec2 textureCoordinate;
 
 out vec4 outColor;
 
@@ -16,8 +17,12 @@ uniform vec3 specularColor;
 uniform float transparency;
 uniform float shininess;
 
+uniform sampler2D texture;
+
 void main()
 {
+  vec4 textureColor = texture2D(texture, textureCoordinate);
+
   vec3 normal = normalize(worldNormal);
 
   vec3 toLight = normalize(lightPosition - worldPosition);
@@ -30,12 +35,9 @@ void main()
 
   vec3 halfDir = normalize(toLight + toCamera);
   float specAngle = clamp(dot(halfDir, normal), 0.0, 1.0);
-  vec3 specularLight = specularColor * pow(specAngle, 5.0);
+  vec3 specularLight = specularColor * pow(specAngle, 20.0);
 
   vec3 finalLight = clamp(ambientLight + (diffuseLight + specularLight) * lightColor * clamp(lightPower/pow(lightDistance, 2.0), 0.0, 1.0) , 0.0, 1.0);
 
-  outColor = vec4(
-    vec3(1.0, 1.0, 1.0) * finalLight,
-    1.0
-  );
+  outColor = textureColor * vec4(finalLight,  1.0);
 }
