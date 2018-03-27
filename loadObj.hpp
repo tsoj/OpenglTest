@@ -194,6 +194,7 @@ Model3D loadObj(std::string filePath)
         }
         ret.objects.back().vertices.push_back(tempVertex);
       }
+
       auto size = ret.objects.back().vertices.size();
       glm::vec3 v0 = ret.objects.back().vertices[size-1].position;
       glm::vec3 v1 = ret.objects.back().vertices[size-2].position;

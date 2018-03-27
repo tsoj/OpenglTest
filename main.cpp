@@ -154,20 +154,20 @@ struct Entity
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(
 				2,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
-				2,     																		// size
-				GL_FLOAT,          												// type
-				GL_FALSE,																	// normalized
-				sizeof(Vertex),														// stride
-				(void*)offsetof(Vertex, textureCoordinate)// array buffer offset
-			);
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(
-				2,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
 				3,     																		// size
 				GL_FLOAT,          												// type
 				GL_FALSE,																	// normalized
 				sizeof(Vertex),														// stride
 				(void*)offsetof(Vertex, tangent)					// array buffer offset
+			);
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(
+				3,                  											// attribute 0. No particular reason for 0, but must match the layout in the shader.
+				2,     																		// size
+				GL_FLOAT,          												// type
+				GL_FALSE,																	// normalized
+				sizeof(Vertex),														// stride
+				(void*)offsetof(Vertex, textureCoordinate)// array buffer offset
 			);
 		}
 	}
