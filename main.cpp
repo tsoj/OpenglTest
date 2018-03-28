@@ -33,6 +33,7 @@ glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 glm::vec3 lightPosition = {0.0, 20.0, -50.0};
 
 GLuint textureID;
+GLuint normalMapID;
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -86,7 +87,7 @@ GLuint compileShaders(std::string vertFile, std::string fragFile)
 	return programID;
 }
 
-GLuint loadTexture(const char* filePath)
+Texture generateTexture(const char* filePath)
 {
 	std::vector<unsigned char> image;
   unsigned int width, height;
@@ -96,10 +97,16 @@ GLuint loadTexture(const char* filePath)
 		throw std::runtime_error("decoder error " + std::to_string(error) + ": " + lodepng_error_text(error));
 	}
 
-	GLuint textureID;glGenTextures(1, &textureID);
+	return Texture(width, height, image);
+}
+
+GLuint loadTexture(Texture texture)
+{
+	GLuint textureID;
+	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, defaultTexture.width, defaultTexture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, defaultTexture.image.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.image.data());
 	//enable mipmapping
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -243,6 +250,10 @@ struct Entity
 			glUniform1i(glGetUniformLocation(programID, "texture"), 0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 
+			glActiveTexture(GL_TEXTURE1);
+			glUniform1i(glGetUniformLocation(programID, "normalMap"), 1);
+			glBindTexture(GL_TEXTURE_2D, normalMapID);
+
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
 	}
@@ -291,7 +302,8 @@ int main( void )
 
 	programID = compileShaders("shader.vert", "shader.frag");
 
-	textureID = loadTexture("whitePixel.png");
+	textureID = loadTexture(defaultTexture);
+	normalMapID = loadTexture(defaultNormalMap);
 
 	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, -1.0, -20.0});
 

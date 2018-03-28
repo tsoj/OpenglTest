@@ -17,12 +17,13 @@ uniform float transparency;
 uniform float shininess;
 
 uniform sampler2D texture;
+uniform sampler2D normalMap;
 
 void main()
 {
   vec4 textureColor = texture2D(texture, textureCoordinate);
 
-  vec3 normal = vec3(0.0, 0.0, 1.0);
+  vec3 normal = normalize(texture2D(normalMap, textureCoordinate).rgb * 2.0 - vec3(1.0, 1.0, 1.0));
 
   vec3 toLight = normalize(lightPosition - position);
   vec3 toCamera = normalize(cameraPosition - position);
