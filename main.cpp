@@ -21,6 +21,7 @@ struct Texture
 	std::vector<unsigned char> image;
 };
 Texture defaultTexture = Texture(1, 1, {255, 255, 255, 255});
+Texture defaultNormalMap = Texture(1, 1, {128, 128, 255, 255});
 
 GLuint programID;
 GLFWwindow* window;
