@@ -24,16 +24,23 @@ Texture defaultTexture = Texture(1, 1, {255, 255, 255, 255});
 Texture defaultNormalMap = Texture(1, 1, {128, 128, 255, 255});
 
 GLuint programID;
+GLuint shadowProgramID;
 GLFWwindow* window;
 
 glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
 glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
-glm::vec3 lightPosition = {0.0, 20.0, -50.0};
+glm::vec3 lightPosition = {0.0, 20.0, -20.0};
 
 GLuint textureID;
 GLuint normalMapID;
+
+const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+GLuint depthMapID;
+
+
+GLuint depthMapFramebufferID;
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -257,6 +264,39 @@ struct Entity
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
 	}
+
+	void renderShadowMap()
+	{
+		for(size_t i = 0; i< model.objects.size(); i++)
+		{
+
+			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFramebufferID);
+
+			glBindVertexArray(vertexArrayObjectIDs[i]);
+
+			glUseProgram(shadowProgramID);
+
+			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 0.0));
+			glm::mat4 modelTranslation = glm::translate(glm::mat4(), position);
+
+			glm::mat4 modelToWorld = modelTranslation * modelRotation;
+
+			glm::vec3 lightViewDirection = glm::vec3(0.0, -1.0, 0.0);
+			glm::vec3 lightUp = glm::vec3(0.0, 0.0, 1.0);
+			glm::mat4 modelToProjection =
+				glm::perspective(glm::radians(90.0f), GLfloat(1024)/GLfloat(1024), 0.1f, 100.0f) *
+				glm::lookAt(lightPosition, lightPosition + lightViewDirection, lightUp) * modelToWorld;
+
+
+			glUniformMatrix4fv(
+				glGetUniformLocation(programID, "modelToProjection"),
+				1, GL_FALSE, &(modelToProjection[0][0])
+			);
+
+			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
+		}
+	}
 };
 
 int main( void )
@@ -303,14 +343,68 @@ int main( void )
 	programID = compileShaders("shader.vert", "shader.frag");
 
 	textureID = loadTexture(defaultTexture);
-	normalMapID = loadTexture(defaultNormalMap);
+	normalMapID = loadTexture(/*generateTexture("normalMap.png"));/*/defaultNormalMap);
 
 	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, -1.0, -20.0});
 
 	Entity p = Entity(loadObj("Plane.obj"), {0.0, -3.0, -20.0});
 
+
+	shadowProgramID = compileShaders("shader_shadow.vert", "shader_shadow.frag");
+
+	glGenFramebuffers(1, &depthMapFramebufferID);
+
+	glGenTextures(1, &depthMapID);
+	glBindTexture(GL_TEXTURE_2D, depthMapID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFramebufferID);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapID, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  glClear(GL_DEPTH_BUFFER_BIT);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //ConfigureShaderAndMatrices();
+	e.renderShadowMap();
+	p.renderShadowMap();
+  //RenderScene();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	auto f = [](const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height)
+	{
+  	//Encode the image
+  	unsigned error = lodepng::encode(filename, image, width, height);
+
+  	//if there's an error, display it
+  	if(error) std::cout << "encoder error " << error << ": "<< lodepng_error_text(error) << std::endl;
+	};
+	std::vector<unsigned char> image = std::vector<unsigned char>(1024*1024*4);
+	glBindTexture(GL_TEXTURE_2D, depthMapID);
+	glGetTexImage(
+		GL_TEXTURE_2D,
+  	0,
+  	GL_DEPTH,
+  	GL_UNSIGNED_BYTE,
+  	image.data()
+	);
+	//for()
+
+	//lodepng::encode("shadowMap.png", image, SHADOW_WIDTH, SHADOW_HEIGHT);
+	f("shadowMap.png", image, 1024, 1024);
+
+
+
 	while(!glfwWindowShouldClose(window))
 	{
+		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		e.render();
 		p.render();
