@@ -35,6 +35,10 @@ glm::vec3 lightPosition = {0.0, 20.0, -20.0};
 GLuint textureID;
 GLuint normalMapID;
 
+GLuint renderedTextureID;
+GLuint renderToFramebufferID;
+GLuint depthRenderbufferID;
+
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
 	GLuint programID;
@@ -369,6 +373,27 @@ int main( void )
 	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, -1.0, -20.0});
 
 	Entity p = Entity(loadObj("Plane.obj"), {0.0, -3.0, -20.0});
+
+	/*glGenFramebuffers(1, &renderToFramebufferID);
+	glBindFramebuffer(GL_FRAMEBUFFER, renderToFramebufferID);
+	glGenTextures(1, &renderedTextureID);
+	glBindTexture(GL_TEXTURE_2D, renderedTextureID);
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	glGenRenderbuffers(1, &depthRenderbufferID);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbufferID);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbufferID);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderToFramebufferID, 0);
+	GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, DrawBuffers);
+	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		throw std::runtime_error("Framebuffer error.");
+	}*/
 
 	while(!glfwWindowShouldClose(window))
 	{

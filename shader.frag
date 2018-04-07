@@ -5,7 +5,7 @@ in layout(location = 1) vec2 textureCoordinate;
 in layout(location = 2) vec3 cameraPosition;
 in layout(location = 3) vec3 lightPosition;
 
-out vec4 outColor;
+layout(location = 0) out vec4 outColor;
 
 const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 const float lightPower = 10000.0;
