@@ -39,6 +39,11 @@ GLuint renderedTextureID;
 GLuint renderToFramebufferID;
 GLuint depthRenderbufferID;
 
+GLuint depthMapProgramID;
+GLuint depthMapID;
+GLuint depthMapFramebufferID;
+const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
 	GLuint programID;
@@ -322,6 +327,38 @@ struct Entity
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
 	}
+	void renderDepthMap()
+	{
+		for(size_t i = 0; i< model.objects.size(); i++)
+		{
+
+			glBindVertexArray(vertexArrayObjectIDs[i]);
+
+			glUseProgram(depthMapProgramID);
+
+			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 0.0));
+			glm::mat4 modelTranslation = glm::translate(glm::mat4(), position);
+
+			glm::mat4 modelToWorld = modelTranslation * modelRotation;
+
+			int width, height;
+			glfwGetFramebufferSize(window, &width, &height);
+			glm::mat4 worldToProjection =
+				glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) * //glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f) *
+				glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp);
+
+				glUniformMatrix4fv(
+					glGetUniformLocation(programID, "modelToWorld"),
+					1, GL_FALSE, &(modelToWorld[0][0])
+				);
+				glUniformMatrix4fv(
+					glGetUniformLocation(programID, "worldToProjection"),
+					1, GL_FALSE, &(worldToProjection[0][0])
+				);
+
+			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
+		}
+	}
 };
 
 int main( void )
@@ -363,7 +400,7 @@ int main( void )
 	glEnable(GL_CULL_FACE);
 	//glFrontFace(GL_CW);
 
-	glClearColor(0.02f, 0.04f, 0.1f, 1.0f);
+	glClearColor(0.1f, 0.2f, 0.4f, 1.0f);
 
 	programID = compileShaders("shader.vert", "shader.frag");
 
@@ -374,7 +411,9 @@ int main( void )
 
 	Entity p = Entity(loadObj("Plane.obj"), {0.0, -3.0, -20.0});
 
-	/*glGenFramebuffers(1, &renderToFramebufferID);
+	depthMapProgramID = compileShaders("shader_shadow.vert", "shader_shadow.frag");
+
+	glGenFramebuffers(1, &renderToFramebufferID);
 	glBindFramebuffer(GL_FRAMEBUFFER, renderToFramebufferID);
 	glGenTextures(1, &renderedTextureID);
 	glBindTexture(GL_TEXTURE_2D, renderedTextureID);
@@ -387,22 +426,51 @@ int main( void )
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbufferID);
 
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderToFramebufferID, 0);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTextureID, 0);
 	GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, DrawBuffers);
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		throw std::runtime_error("Framebuffer error.");
-	}*/
+	}
+
+	glViewport(0, 0, width, height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	e.renderDepthMap();
+	p.renderDepthMap();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenFramebuffers(1, &depthMapFramebufferID);
+
+	glGenTextures(1, &depthMapID);
+	glBindTexture(GL_TEXTURE_2D, depthMapID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFramebufferID);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapID, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFramebufferID);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  e.renderDepthMap();
+  p.renderDepthMap();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	while(!glfwWindowShouldClose(window))
 	{
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		e.render();
-		p.render();
+		//e.render();
+		//p.render();
 
-		//renderTexture(normalMapID);
+		renderTexture(renderedTextureID);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
