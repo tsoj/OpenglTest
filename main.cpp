@@ -26,8 +26,8 @@ Texture defaultNormalMap = Texture(1, 1, {128, 128, 255, 255});
 GLuint programID;
 GLFWwindow* window;
 
-glm::vec3 cameraPosition = {0.0, 0.0, 0.0};
-glm::vec3 cameraViewDirection = {0.0, 0.0, -1.0};
+glm::vec3 cameraPosition = {0.0, 10.0, 10.0};
+glm::vec3 cameraViewDirection = {0.0, -0.5, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
 glm::vec3 lightPosition = {0.0, 20.0, -20.0};
@@ -280,6 +280,11 @@ struct Entity
 				glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp);
 
 
+			glm::mat4 worldToLightSpace =
+				glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) *
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+
+
 			glUniformMatrix4fv(
 				glGetUniformLocation(programID, "modelToWorld"),
 				1, GL_FALSE, &(modelToWorld[0][0])
@@ -287,6 +292,10 @@ struct Entity
 			glUniformMatrix4fv(
 				glGetUniformLocation(programID, "worldToProjection"),
 				1, GL_FALSE, &(worldToProjection[0][0])
+			);
+			glUniformMatrix4fv(
+				glGetUniformLocation(programID, "worldToLightSpace"),
+				1, GL_FALSE, &(worldToLightSpace[0][0])
 			);
 			glUniform3fv(
 				glGetUniformLocation(programID, "cameraPosition"),
@@ -316,6 +325,7 @@ struct Entity
 				glGetUniformLocation(programID, "shininess"),
 				model.objects[i].material.shininess
 			);
+
 			glActiveTexture(GL_TEXTURE0);
 			glUniform1i(glGetUniformLocation(programID, "texture"), 0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
@@ -323,6 +333,10 @@ struct Entity
 			glActiveTexture(GL_TEXTURE1);
 			glUniform1i(glGetUniformLocation(programID, "normalMap"), 1);
 			glBindTexture(GL_TEXTURE_2D, normalMapID);
+
+			glActiveTexture(GL_TEXTURE2);
+			glUniform1i(glGetUniformLocation(programID, "depthMap"), 2);
+			glBindTexture(GL_TEXTURE_2D, depthMapID);
 
 			glDrawArrays(GL_TRIANGLES, 0, model.objects[i].vertices.size());
 		}
@@ -344,8 +358,8 @@ struct Entity
 			int width, height;
 			glfwGetFramebufferSize(window, &width, &height);
 			glm::mat4 worldToProjection =
-				glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) * //glm::perspective(glm::radians(60.0f), GLfloat(width)/GLfloat(height), 0.1f, 100.0f) *
-				glm::lookAt(cameraPosition, cameraPosition + cameraViewDirection, cameraUp);
+				glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) *
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
 
 				glUniformMatrix4fv(
 					glGetUniformLocation(programID, "modelToWorld"),
@@ -413,33 +427,6 @@ int main( void )
 
 	depthMapProgramID = compileShaders("shader_shadow.vert", "shader_shadow.frag");
 
-	glGenFramebuffers(1, &renderToFramebufferID);
-	glBindFramebuffer(GL_FRAMEBUFFER, renderToFramebufferID);
-	glGenTextures(1, &renderedTextureID);
-	glBindTexture(GL_TEXTURE_2D, renderedTextureID);
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	glGenRenderbuffers(1, &depthRenderbufferID);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbufferID);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbufferID);
-
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTextureID, 0);
-	GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-	glDrawBuffers(1, DrawBuffers);
-	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		throw std::runtime_error("Framebuffer error.");
-	}
-
-	glViewport(0, 0, width, height);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	e.renderDepthMap();
-	p.renderDepthMap();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	glGenFramebuffers(1, &depthMapFramebufferID);
 
 	glGenTextures(1, &depthMapID);
@@ -467,10 +454,10 @@ int main( void )
 	{
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//e.render();
-		//p.render();
+		e.render();
+		p.render();
 
-		renderTexture(renderedTextureID);
+		//renderTexture(depthMapID);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
