@@ -30,7 +30,7 @@ glm::vec3 cameraPosition = {0.0, 10.0, 10.0};
 glm::vec3 cameraViewDirection = {0.0, -0.5, -1.0};
 glm::vec3 cameraUp = {0.0, 1.0, 0.0};
 
-glm::vec3 lightPosition = {0.0, 20.0, -20.0};
+glm::vec3 lightPosition = {0.0, 90.0, -20.0};
 
 GLuint textureID;
 GLuint normalMapID;
@@ -42,7 +42,7 @@ GLuint depthRenderbufferID;
 GLuint depthMapProgramID;
 GLuint depthMapID;
 GLuint depthMapFramebufferID;
-const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+const unsigned int SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192;
 
 GLuint compileShaders(std::string vertFile, std::string fragFile)
 {
@@ -218,7 +218,7 @@ struct Entity
 				GL_FLOAT,          												// type
 				GL_FALSE,																	// normalized
 				sizeof(Vertex),														// stride
-				(void*)0            											// array buffer offset
+				(void*)offsetof(Vertex, position)   			// array buffer offset
 			);
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(
@@ -268,7 +268,7 @@ struct Entity
 
 			glUseProgram(programID);
 
-			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 0.0));
+			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 1.0));
 			glm::mat4 modelTranslation = glm::translate(glm::mat4(), position);
 
 			glm::mat4 modelToWorld = modelTranslation * modelRotation;
@@ -281,7 +281,7 @@ struct Entity
 
 
 			glm::mat4 worldToLightSpace =
-				glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) *
+				glm::perspective(glm::radians(90.0f), GLfloat(SHADOW_WIDTH)/GLfloat(SHADOW_HEIGHT), 0.1f, 100.0f) * //glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) *
 				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
 
 
@@ -350,7 +350,7 @@ struct Entity
 
 			glUseProgram(depthMapProgramID);
 
-			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 0.0));
+			glm::mat4 modelRotation = glm::rotate(glm::mat4(), glm::radians(100.0f), glm::vec3(0.0, 1.0, 1.0));
 			glm::mat4 modelTranslation = glm::translate(glm::mat4(), position);
 
 			glm::mat4 modelToWorld = modelTranslation * modelRotation;
@@ -358,7 +358,7 @@ struct Entity
 			int width, height;
 			glfwGetFramebufferSize(window, &width, &height);
 			glm::mat4 worldToProjection =
-				glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) *
+				glm::perspective(glm::radians(90.0f), GLfloat(SHADOW_WIDTH)/GLfloat(SHADOW_HEIGHT), 0.1f, 100.0f) * //glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f) *
 				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
 
 				glUniformMatrix4fv(
@@ -421,7 +421,7 @@ int main( void )
 	textureID = loadTexture(defaultTexture);
 	normalMapID = loadTexture(generateTexture("normalMap.png"));//defaultNormalMap);
 
-	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, -1.0, -20.0});
+	Entity e = Entity(loadObj("spaceboat.obj"), {0.0, 4.0, -20.0});
 
 	Entity p = Entity(loadObj("Plane.obj"), {0.0, -3.0, -20.0});
 
